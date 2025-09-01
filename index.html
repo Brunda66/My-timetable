@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PESITM Class Timetable</title>
+  <style>
+    /* (same styles as before, unchanged for beauty) */
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #f6f9fc, #e9f0ff);
+      margin: 0;
+      padding: 0;
+      color: #222;
+    }
+    header {
+      background: linear-gradient(135deg, #004080, #0073e6);
+      color: white;
+      padding: 2rem 1rem;
+      text-align: center;
+      border-bottom-left-radius: 25px;
+      border-bottom-right-radius: 25px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    header h1 { font-size: 2rem; font-weight: 700; }
+    main { padding: 1.5rem; max-width: 1000px; margin: auto; }
+    .day-selector { display: flex; justify-content: center; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 1.5rem; }
+    .day-selector button {
+      padding: 0.6rem 1.2rem; border: none; border-radius: 25px; background: white; color: #004080;
+      font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .day-selector button:hover { background: #004080; color: white; transform: translateY(-2px); }
+    .day-selector button.active { background: #0073e6; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+    .day-selector .nextday { background: #28a745; color: white; }
+    table { width: 100%; border-collapse: collapse; background: white; border-radius: 15px; overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 1.5rem; }
+    th, td { text-align: center; padding: 1rem; }
+    th { background: #004080; color: white; font-size: 1rem; text-transform: uppercase; }
+    tr:nth-child(even) { background: #f6f9fc; }
+    .now { background: #ffe2e2 !important; font-weight: bold; }
+    .next { background: #e2f7e2 !important; font-weight: bold; }
+    #classReminder {
+      background: linear-gradient(135deg, #fff9e6, #fff3cd);
+      border: 1px solid #ffeeba; padding: 1.2rem; border-radius: 15px; margin-bottom: 1.5rem;
+      font-size: 1.1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; }
+    .stat-card {
+      background: white; padding: 1.2rem; border-radius: 15px; text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08); transition: transform 0.2s ease;
+    }
+    .stat-card:hover { transform: translateY(-4px); }
+    .stat-card h3 { font-size: 1.2rem; color: #004080; margin-bottom: 0.5rem; }
+    .stat-card p { font-size: 1.5rem; font-weight: bold; color: #222; }
+    .noday { text-align: center; font-size: 1.3rem; font-weight: bold; padding: 2rem; background: white;
+      border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>PESITM Class Timetable</h1>
+    <p>Dept. of AI & ML - Semester 5 (Section A)</p>
+  </header>
+  <main>
+    <div class="day-selector" id="daySelector"></div>
+    <div id="timetable"></div>
+    <div id="classReminder">Class reminders will appear here.</div>
+    <div class="stats" id="statistics"></div>
+  </main>
+
+  <script>
+    /* --------- Timetable Data (same as before) --------- */
+    const timetableData = {
+      Monday: [
+        { subject: "SE&PM", time: "08:00 - 09:00" },
+        { subject: "Library", time: "09:00 - 10:00" },
+        { subject: "Break", time: "10:00 - 10:30" },
+        { subject: "RM&IPR", time: "10:30 - 11:30" },
+        { subject: "CV", time: "11:30 - 12:30" },
+        { subject: "Mentoring", time: "12:30 - 01:30" },
+        { subject: "NSS", time: "01:30 - 02:30" },
+        { subject: "Mini Project", time: "02:30 - 03:30" },
+      ],
+      Tuesday: [
+        { subject: "CN", time: "08:00 - 09:00" },
+        { subject: "EVS", time: "09:00 - 10:00" },
+        { subject: "Break", time: "10:00 - 10:30" },
+        { subject: "DV Lab (B2)/ CN Lab (B1)", time: "10:30 - 12:30" },
+        { subject: "Lunch", time: "12:30 - 01:30" },
+        { subject: "Mini Project", time: "01:30 - 02:30" },
+        { subject: "Mini Project", time: "02:30 - 03:30" },
+      ],
+      Wednesday: [
+        { subject: "RM&IPR", time: "08:00 - 09:00" },
+        { subject: "CV", time: "09:00 - 10:00" },
+        { subject: "Break", time: "10:00 - 10:30" },
+        { subject: "SE&PM", time: "10:30 - 11:30" },
+        { subject: "TC", time: "11:30 - 12:30" },
+        { subject: "Remedial", time: "12:30 - 01:30" },
+        { subject: "TC", time: "01:30 - 02:30" },
+      ],
+      Thursday: [
+        { subject: "TC", time: "08:00 - 09:00" },
+        { subject: "CN", time: "09:00 - 10:00" },
+        { subject: "Break", time: "10:00 - 10:30" },
+        { subject: "SE&PM", time: "10:30 - 11:30" },
+        { subject: "CV", time: "11:30 - 12:30" },
+        { subject: "Forum Activity", time: "12:30 - 01:30" },
+      ],
+      Friday: [
+        { subject: "DV Lab (B1)/ CN Lab (B2)", time: "08:00 - 10:00" },
+        { subject: "Break", time: "10:00 - 10:30" },
+        { subject: "RM&IPR", time: "10:30 - 11:30" },
+        { subject: "TC", time: "11:30 - 12:30" },
+      ],
+      Saturday: [{ subject: "No Classes 🎉", time: "—" }],
+      Sunday: [{ subject: "No Classes 🎉", time: "—" }]
+    };
+
+    const daySelector = document.getElementById("daySelector");
+    const timetableDiv = document.getElementById("timetable");
+    const reminderDiv = document.getElementById("classReminder");
+    const statsDiv = document.getElementById("statistics");
+
+    let currentDay = new Date().toLocaleDateString("en-US", { weekday: "long" });
+    let lastNotifiedClass = "";
+
+    /* --------- Notification Setup --------- */
+    if ("Notification" in window) {
+      if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+        Notification.requestPermission();
+      }
+    }
+
+    function sendNotification(title, body) {
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification(title, { body: body, icon: "https://cdn-icons-png.flaticon.com/512/1827/1827370.png" });
+      }
+    }
+
+    /* --------- Render Day Selector --------- */
+    function renderDaySelector() {
+      daySelector.innerHTML = "";
+      Object.keys(timetableData).forEach(day => {
+        const btn = document.createElement("button");
+        btn.textContent = day;
+        if (day === currentDay) btn.classList.add("active");
+        btn.onclick = () => { currentDay = day; renderDaySelector(); renderTimetable(); };
+        daySelector.appendChild(btn);
+      });
+      const nextBtn = document.createElement("button");
+      nextBtn.textContent = "➡ Next Day";
+      nextBtn.classList.add("nextday");
+      nextBtn.onclick = () => {
+        const days = Object.keys(timetableData);
+        let idx = days.indexOf(currentDay);
+        currentDay = days[(idx + 1) % days.length];
+        renderDaySelector(); renderTimetable();
+      };
+      daySelector.appendChild(nextBtn);
+    }
+
+    /* --------- Render Timetable --------- */
+    function renderTimetable() {
+      const classes = timetableData[currentDay];
+      if (classes.length === 1 && classes[0].subject.includes("No Classes")) {
+        timetableDiv.innerHTML = `<div class="noday">🎉 ${classes[0].subject} 🎉</div>`;
+        reminderDiv.textContent = "Relax! No classes today 🎉";
+        statsDiv.innerHTML = "";
+        return;
+      }
+      let html = `<table><tr><th>Time</th><th>Subject</th></tr>`;
+      classes.forEach(cls => { html += `<tr><td>${cls.time}</td><td>${cls.subject}</td></tr>`; });
+      html += "</table>";
+      timetableDiv.innerHTML = html;
+      updateClassStatus();
+      updateStatistics();
+    }
+
+    /* --------- Helpers --------- */
+    function parseTime(timeStr) {
+      const [h, m] = timeStr.split(":").map(Number);
+      return h * 60 + m;
+    }
+
+    function updateClassStatus() {
+      const classes = timetableData[currentDay];
+      if (classes.length === 1 && classes[0].subject.includes("No Classes")) return;
+      const rows = timetableDiv.querySelectorAll("tr");
+      const now = new Date();
+      const minutesNow = now.getHours() * 60 + now.getMinutes();
+      rows.forEach((row, i) => { if (i > 0) row.classList.remove("now", "next"); });
+      let found = false;
+      for (let i = 0; i < classes.length; i++) {
+        let [startStr, endStr] = classes[i].time.split(" - ");
+        if (!endStr) continue;
+        const start = parseTime(startStr);
+        const end = parseTime(endStr);
+        if (minutesNow >= start && minutesNow < end) {
+          rows[i+1].classList.add("now");
+          reminderDiv.textContent = `Now: ${classes[i].subject} (${classes[i].time})`;
+          if (lastNotifiedClass !== classes[i].subject) {
+            sendNotification("Class Started", `${classes[i].subject} (${classes[i].time})`);
+            lastNotifiedClass = classes[i].subject;
+          }
+          if (i+1 < classes.length) {
+            rows[i+2]?.classList.add("next");
+            reminderDiv.textContent += ` | Next: ${classes[i+1].subject} (${classes[i+1].time})`;
+          }
+          found = true; break;
+        }
+        if (minutesNow < start) {
+          rows[i+1].classList.add("next");
+          reminderDiv.textContent = `Next: ${classes[i].subject} (${classes[i].time})`;
+          found = true; break;
+        }
+      }
+      if (!found) reminderDiv.textContent = "No more classes today 🎉";
+    }
+
+    function updateStatistics() {
+      const classes = timetableData[currentDay]
+        .filter(c => c.subject !== "Break" && c.subject !== "Lunch" && !c.subject.includes("No Classes"));
+      const totalToday = classes.length;
+      if (totalToday === 0) {
+        statsDiv.innerHTML = `<div class="noday">No academic classes today 🎉</div>`; return;
+      }
+      const now = new Date();
+      const minutesNow = now.getHours() * 60 + now.getMinutes();
+      let completed = classes.filter(c => {
+        const endStr = c.time.split(" - ")[1];
+        if (!endStr) return false;
+        return parseTime(endStr) <= minutesNow;
+      }).length;
+      const remaining = totalToday - completed;
+      const weeklyTotal = Object.values(timetableData).flat()
+        .filter(c => c.subject !== "Break" && c.subject !== "Lunch" && !c.subject.includes("No Classes")).length;
+      statsDiv.innerHTML = `
+        <div class="stat-card"><h3>Total Today</h3><p>${totalToday}</p></div>
+        <div class="stat-card"><h3>Completed</h3><p>${completed}</p></div>
+        <div class="stat-card"><h3>Remaining</h3><p>${remaining}</p></div>
+        <div class="stat-card"><h3>Weekly Total</h3><p>${weeklyTotal}</p></div>
+      `;
+    }
+
+    /* --------- Auto Update --------- */
+    setInterval(updateClassStatus, 60000);
+    renderDaySelector();
+    renderTimetable();
+  </script>
+</body>
+</html>
